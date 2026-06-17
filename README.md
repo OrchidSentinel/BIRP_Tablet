@@ -1,77 +1,134 @@
 # BIRP_Tablets
 
-Eine FiveM-Resource, die **mehrere Tablet-Terminals** bündelt. Je nachdem,
-welches Item benutzt wird, öffnet sich das passende Tablet – alle in derselben
-Tablet-Hülle (Rahmen, Bezel, Buttons).
+Eine **einzige FiveM-Resource**, die **mehrere Tablet-Terminals** bündelt. Je
+nachdem, welches ox_inventory-Item benutzt wird, öffnet sich das passende
+Tablet — alle in derselben Tablet-Hülle (Rahmen, Bezel, Buttons).
 
-Die Inhalte der einzelnen Tablets bleiben **eigenständige GitHub-Repos** und
-sind weiterhin über **GitHub Pages** erreichbar. Sie sind hier als
-**Git-Submodules** in Unterordnern eingebunden:
+Die Inhalte der einzelnen Tablets sind **eigenständige GitHub-Repos** und
+laufen unverändert auch als **GitHub-Pages-Website**. Hier sind sie als
+**Git-Submodules** in Unterordnern eingebunden.
 
-| Ordner      | Repo                                                  | Item              |
-|-------------|-------------------------------------------------------|-------------------|
-| `sentinel/` | `OrchidSentinel/sentinel-initiative`                  | `sentinel_tablet` |
-| `smile/`    | `OrchidSentinel/Smile`                                | `smile_terminal`  |
-| `blackbox/` | `OrchidSentinel/sentinel-blackbox`                    | `blackbox_tablet` |
+> **TL;DR für Entwickler & KI:** Diese Resource liefert die NUI-Hülle + Lua-Glue.
+> Die drei Unterordner (`sentinel/`, `smile/`, `blackbox/`) sind **reiner
+> Content** (HTML/CSS/JS) aus separaten Repos. Inhalt ändern = im jeweiligen
+> Content-Repo arbeiten, dann hier das Submodule aktualisieren. **Niemals**
+> FiveM-Glue (fxmanifest/NUI-Focus/`cfx-nui-…`) in die Content-Repos packen.
 
-## Wie es funktioniert
+## Die 4 Repos
 
-- `nui.html` ist die gemeinsame Tablet-Hülle (FiveM-only). Sie lädt den Inhalt
-  des aktiven Tablets in einen `<iframe>` (`<ordner>/index.html`).
-- Die Inhaltsseiten nutzen nur **relative Links** → sie funktionieren identisch
-  im Spiel (iframe) und auf GitHub Pages (direkt aufgerufen).
-- Smile versteckt sich auf GitHub Pages bzw. wartet im Spiel auf ein
-  `open`-Signal; die Hülle schickt dieses Signal automatisch an den iframe.
-- `fxmanifest.lua` serviert die Inhaltsordner per Glob (`sentinel/**/*` …) →
-  neue Inhaltsdateien laufen **ohne Manifest-Änderung** mit.
+| Rolle              | Repo                                              | Hier als   |
+|--------------------|---------------------------------------------------|------------|
+| Sammel-Resource    | `OrchidSentinel/BIRP_Tablet`                      | dieses Repo|
+| Tablet „Sentinel"  | `OrchidSentinel/sentinel-initiative`              | `sentinel/`|
+| Tablet „Smile"     | `OrchidSentinel/Smile`                            | `smile/`   |
+| Tablet „Blackbox"  | `OrchidSentinel/sentinel-blackbox`                | `blackbox/`|
 
-## Erstinstallation auf dem Server
+## Architektur
+
+```
+  ox_inventory-Item                BIRP_Tablets  (FiveM-Resource)
+  ───────────────►  client/client.lua ──SendNUIMessage(open)──►  nui.html
+                         │  exports.openTablet(id)                 (Hülle/Rahmen)
+                         │                                            │
+                         │  ◄──── fetch https://<res>/close ──────────┤
+                         ▼                                       <iframe src>
+                    SetNuiFocus                       ┌──────────────┼──────────────┐
+                                                      ▼              ▼              ▼
+                                              sentinel/index   smile/index   blackbox/index
+                                              (Submodule)      (Submodule)   (Submodule)
+                                                      │              │              │
+   getrennte GitHub-Repos + je eine GitHub-Pages-Website ◄──────────┴──────────────┘
+```
+
+- **`nui.html`** = gemeinsame Tablet-Hülle (FiveM-only). Sie lädt den Inhalt des
+  aktiven Tablets in einen `<iframe>` (`<ordner>/index.html`), zeichnet den
+  Rahmen und besitzt die gesamte NUI-Logik (Öffnen/Schließen/ESC).
+- **Content-Seiten** nutzen nur **relative Links** → identisches Verhalten im
+  Spiel (iframe) und auf GitHub Pages (direkt aufgerufen).
+- **`fxmanifest.lua`** serviert die Inhaltsordner per Glob → neue Inhaltsdateien
+  laufen **ohne Manifest-Änderung** mit.
+
+## Message-Protokoll (Lua ⇄ NUI)
+
+| Richtung   | Nachricht / Call                                             | Bedeutung                       |
+|------------|--------------------------------------------------------------|---------------------------------|
+| Lua → NUI  | `SendNUIMessage({ type='open', folder, entry, frame, network, node })` | Tablet öffnen, Inhalt laden     |
+| Lua → NUI  | `SendNUIMessage({ type='close' })`                           | Tablet schließen                |
+| NUI → Lua  | `fetch('https://'..GetParentResourceName()..'/close')`       | NUI bittet ums Schließen (ESC/Button) |
+
+Die Hülle schickt dem geladenen iframe nach dem Load zusätzlich
+`postMessage({action:'open'})` (No-Op für reinen Content; Altlast-Kompatibilität).
+
+> **Wichtig:** NUI-Callbacks **immer** über `GetParentResourceName()` adressieren,
+> **nie** `cfx-nui-<name>` hartkodieren.
+
+## Erstinstallation (Server)
 
 ```bash
-# In den resources-Pfad klonen – MIT Submodules:
-git clone --recurse-submodules <url-zu-BIRP_Tablets> BIRP_Tablets
+# MIT Submodules klonen:
+git clone --recurse-submodules https://github.com/OrchidSentinel/BIRP_Tablet.git BIRP_Tablets
 
 # Falls schon ohne --recurse-submodules geklont:
 git -C BIRP_Tablets submodule update --init --recursive
 ```
 
-Items aus `items/items.lua` in `ox_inventory/data/items/…` eintragen und in
-der `server.cfg` `ensure BIRP_Tablets` setzen.
+1. Items aus `items/items.lua` in `ox_inventory/data/items/…` eintragen.
+2. `ensure BIRP_Tablets` in die `server.cfg`.
+3. Alte Einzel-Resourcen (`BIRP_Sentinel_Tablet`, `BIRP_Smile_Tablet`) **aus der
+   server.cfg nehmen** — sonst Item-/Export-Kollisionen.
 
-## Inhalt aktualisieren (der eigentliche Vorteil)
+## Inhalt aktualisieren (der Kernvorteil)
 
-Wenn ein Tablet-Maintainer etwas in **seinem** GitHub-Repo ändert, reicht auf
-dem Server:
+Ein Tablet-Maintainer ändert **sein** Content-Repo auf GitHub. Auf dem Server:
 
 ```bash
-# Alle Tablets auf den neuesten Stand ihres Branches ziehen:
-git -C BIRP_Tablets submodule update --remote --recursive
-
-# (oder nur eins:)
+git -C BIRP_Tablets submodule update --remote --recursive   # alle Tablets
+# oder gezielt eins:
 git -C BIRP_Tablets/sentinel pull
 ```
 
-Danach in der Server-Konsole:
+Dann in der Server-Konsole:
 
 ```
 refresh
 restart BIRP_Tablets
 ```
 
-Es müssen **nur die Dateien** aktualisiert werden – kein Code-Eingriff nötig.
-Jedes Tablet bleibt sein eigenes Repo und ist getrennt pflegbar.
+**Nur Dateien aktualisieren — kein Code-Eingriff.** Jedes Tablet bleibt sein
+eigenes Repo und ist getrennt pflegbar.
 
 ## Neues Tablet hinzufügen
 
-1. Submodule einbinden:
-   `git submodule add <repo-url> <ordner>`
-2. In `config.lua` einen Eintrag unter `Config.Tablets` ergänzen
-   (`item`, `folder`, `entry`, `frame`, …).
-3. Item in `items/items.lua` + ox_inventory ergänzen
-   (`export = 'BIRP_Tablets.openTablet'` generisch, oder eigenen Wrapper-Export).
-4. `fxmanifest.lua`: `'<ordner>/**/*'` in `files` ergänzen.
+1. `git submodule add <repo-url> <ordner>`
+2. In `config.lua` einen Eintrag unter `Config.Tablets` ergänzen.
+3. Item in `items/items.lua` + ox_inventory ergänzen.
+4. In `fxmanifest.lua` `'<ordner>/*'` und `'<ordner>/**/*'` zu `files` hinzufügen.
 
-## Konfiguration
+## Dateien in diesem Repo
 
-Siehe `config.lua` – pro Tablet: Item-Name, Ordner, Startseite, Rahmen an/aus,
-Beschriftung im DISCONNECT-Panel.
+| Datei              | Zweck                                                        |
+|--------------------|--------------------------------------------------------------|
+| `nui.html`         | Gemeinsame Tablet-Hülle + komplette NUI-Logik (iframe, ESC, close) |
+| `config.lua`       | Item→Tablet-Mapping, Rahmen an/aus, Panel-Beschriftung       |
+| `client/client.lua`| `openTablet(id)` + Exports, NUI-Focus, `close`-Callback      |
+| `server/server.lua`| Platzhalter / Erweiterungspunkt (z. B. Logging)              |
+| `items/items.lua`  | ox_inventory-Item-Definitionen (Referenz zum Eintragen)      |
+| `sentinel/` `smile/` `blackbox/` | Content-Submodules (eigene Repos)              |
+
+## Vertrag für die Content-Repos (Entwickler & KI)
+
+Damit ein Tablet sowohl im Spiel-iframe **als auch** auf GitHub Pages
+funktioniert, muss jedes Content-Repo diese Regeln einhalten:
+
+1. **Nur reiner Content**: HTML/CSS/JS/Assets. **Kein** `fxmanifest.lua`,
+   `client.lua`, `server.lua` oder NUI-Glue im Content-Repo.
+2. **Einstieg = `index.html`** im Repo-Root.
+3. **Nur relative Links** zwischen Seiten (`seite.html`, nicht `/seite.html`,
+   nicht absolute URLs auf eigene Seiten). Assets ebenso relativ.
+4. **Muss standalone im Browser laufen** — nicht davon abhängen, dass die Hülle
+   da ist.
+5. **Kein `cfx-nui-<name>`** hartkodieren. Falls je der Resource-Name in JS
+   gebraucht wird: `GetParentResourceName()`.
+6. **Keine eigene Schließen-/Focus-Logik** nötig — die Hülle besitzt sie. Im
+   Spiel schließen **ESC** und der **DISCONNECT-Button**.
+7. Neue Dateien werden durch den Manifest-Glob automatisch mitserviert.
