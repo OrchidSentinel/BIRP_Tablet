@@ -4,6 +4,11 @@
 --  Diese Datei wird NICHT von FiveM geladen. Sie ist die dauerhafte Referenz-
 --  Kopie der Items. Eintragen in: ox_inventory/data/items/testing.lua
 --  (bzw. eure Item-Datei). Jedes Item ruft den passenden Client-Export auf.
+--
+--  WICHTIG: Der Export-Prefix unten ('BIRP_Tablets.…') IST der Resource-Name.
+--  Der Resource-Ordner auf dem Server MUSS daher 'BIRP_Tablets' heissen.
+--  (Das GitHub-Repo heisst 'BIRP_Tablet' – beim Klonen Zielordner mit angeben:
+--   git clone --recurse-submodules <url> BIRP_Tablets)
 -- ══════════════════════════════════════════════════════════════════════════════
 
 ['sentinel_tablet'] = {

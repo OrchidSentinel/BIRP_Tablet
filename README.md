@@ -64,6 +64,12 @@ Die Hülle schickt dem geladenen iframe nach dem Load zusätzlich
 
 ## Erstinstallation (Server)
 
+> **⚠️ Resource-Ordner = `BIRP_Tablets` (Plural).** Die Item-Exports sind mit
+> `BIRP_Tablets.` prefixed — das IST der Resource-Name. Das GitHub-Repo heisst
+> `BIRP_Tablet` (Singular), daher beim Klonen den Zielordner explizit angeben
+> (`… BIRP_Tablets`), sonst greifen die ox_inventory-Exports nicht.
+
+
 ```bash
 # MIT Submodules klonen:
 git clone --recurse-submodules https://github.com/OrchidSentinel/BIRP_Tablet.git BIRP_Tablets
