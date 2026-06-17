@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box }
+
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: transparent;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* Everything hidden until NUI is open */
+    #tablet-wrap { display: none }
+    #close-panel { display: none }
+    body.nui-open #tablet-wrap { display: flex }
+    body.nui-open #close-panel { display: block }
+
+    /* Tablet shell */
+    #tablet-wrap {
+      position: relative;
+      width: min(1650px, 92vw);
+      height: min(1170px, 92vh);
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      filter: drop-shadow(0 30px 80px rgba(0, 0, 0, .9));
+    }
+
+    #tablet-body {
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(160deg, #1c1c1e, #111113);
+      border-radius: 24px;
+      border: 2px solid #2a2a2e;
+      box-shadow: inset 0 0 0 1px rgba(255, 255, 255, .06),
+      0 0 0 1px #0a0a0c,
+      0 4px 40px rgba(0, 0, 0, .8);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 18px 18px 22px;
+      gap: 14px;
+      position: relative;
+    }
+
+    #tablet-topbar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .t-cam {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: radial-gradient(circle at 35% 35%, #2d2d32, #0f0f11);
+      border: 1px solid #333;
+      box-shadow: inset 0 0 3px rgba(0, 0, 0, .8);
+    }
+
+    .t-speaker {
+      width: 52px;
+      height: 5px;
+      border-radius: 3px;
+      background: repeating-linear-gradient(90deg, #222 0, #222 2px, #111 2px, #111 4px);
+      opacity: .6;
+    }
+
+    #screen-bezel {
+      flex: 1;
+      width: 100%;
+      background: #000;
+      border-radius: 8px;
+      border: 1px solid #111;
+      overflow: hidden;
+      box-shadow: inset 0 0 30px rgba(0, 0, 0, .6);
+      position: relative;
+    }
+
+    #screen-bezel::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: linear-gradient(130deg, rgba(255, 255, 255, .04) 0%, transparent 55%);
+      pointer-events: none;
+      z-index: 10;
+      border-radius: 8px;
+    }
+
+    #frame {
+      width: 100%;
+      height: 100%;
+      border: none;
+      display: block;
+      opacity: 0;
+      transition: opacity .22s;
+    }
+
+    #frame.ready { opacity: 1 }
+
+    #tablet-bottombar {
+      width: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      flex-shrink: 0;
+    }
+
+    .t-home-bar {
+      width: 110px;
+      height: 4px;
+      border-radius: 2px;
+      background: rgba(255, 255, 255, .12);
+    }
+
+    .side-btn {
+      position: absolute;
+      right: -3px;
+      width: 3px;
+      border-radius: 2px 0 0 2px;
+      background: #222;
+      border: 1px solid #333;
+    }
+
+    .side-btn-power { top: 80px; height: 38px }
+    .side-btn-vol1 { top: 145px; height: 28px }
+    .side-btn-vol2 { top: 180px; height: 28px }
+
+    .side-btn-l {
+      position: absolute;
+      left: -3px;
+      width: 3px;
+      border-radius: 0 2px 2px 0;
+      background: #222;
+      border: 1px solid #333;
+    }
+
+    .side-btn-silent { top: 100px; height: 22px }
+
+    #close-panel {
+      position: absolute;
+      bottom: 36px;
+      right: 28px;
+      z-index: 200;
+      background: rgba(4, 4, 4, 0.96);
+      border: 1px solid #4a0000;
+      box-shadow: 0 0 28px rgba(160, 0, 0, .35), 0 8px 32px rgba(0, 0, 0, .85);
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      min-width: 210px;
+      opacity: 0;
+      transition: opacity .2s;
+    }
+
+    body.nui-open #close-panel.ready { opacity: 1 }
+
+    .cp-head {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+      padding: 10px 14px;
+      background: rgba(30, 0, 0, .45);
+      border-bottom: 1px solid #260000;
+      color: #555;
+      letter-spacing: 2px;
+      font-size: 10px;
+    }
+
+    .cp-led {
+      width: 7px;
+      height: 7px;
+      flex-shrink: 0;
+      background: #ff2b2b;
+      border-radius: 50%;
+      box-shadow: 0 0 8px #ff2b2b;
+      animation: led-blink 1.4s ease-in-out infinite;
+    }
+
+    @keyframes led-blink {
+      0%, 100% { opacity: 1; box-shadow: 0 0 8px #ff2b2b }
+      50% { opacity: .25; box-shadow: none }
+    }
+
+    .cp-rows { padding: 8px 14px 10px }
+
+    .cp-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 3px 0;
+      color: #444;
+      font-size: 10px;
+      letter-spacing: 1px
+    }
+
+    .cp-val { color: #777 }
+    .cp-red { color: #cc2222 }
+    .cp-div { border-top: 1px solid #1e0000; margin: 4px 0 }
+
+    #close-btn {
+      display: block;
+      width: 100%;
+      background: transparent;
+      border: none;
+      border-top: 1px solid #330000;
+      color: #992222;
+      cursor: pointer;
+      font-family: 'Courier New', monospace;
+      font-size: 11px;
+      letter-spacing: 3px;
+      padding: 9px 0;
+      transition: .15s;
+      text-align: center;
+    }
+
+    #close-btn:hover {
+      background: rgba(100, 0, 0, .55);
+      color: #fff;
+      letter-spacing: 4px
+    }
+
+    /* Fullscreen mode (frame=false): hide the shell chrome */
+    body.no-frame #tablet-wrap { width: 100vw; height: 100vh }
+    body.no-frame #tablet-body {
+      border: none; border-radius: 0; padding: 0; background: #000;
+      box-shadow: none;
+    }
+    body.no-frame #tablet-topbar,
+    body.no-frame #tablet-bottombar,
+    body.no-frame .side-btn,
+    body.no-frame .side-btn-l { display: none }
+    body.no-frame #screen-bezel { border-radius: 0; border: none }
+  </style>
+</head>
+<body>
+
+<!-- Universal tablet shell. The active tablet's content is loaded into #frame. -->
+<div id="tablet-wrap">
+  <div id="tablet-body">
+    <div class="side-btn side-btn-power"></div>
+    <div class="side-btn side-btn-vol1"></div>
+    <div class="side-btn side-btn-vol2"></div>
+    <div class="side-btn-l side-btn-silent"></div>
+
+    <div id="tablet-topbar">
+      <div class="t-cam"></div>
+      <div class="t-speaker"></div>
+      <div class="t-cam"></div>
+    </div>
+
+    <div id="screen-bezel">
+      <iframe id="frame" src="about:blank"></iframe>
+    </div>
+
+    <div id="tablet-bottombar">
+      <div class="t-home-bar"></div>
+    </div>
+
+    <div id="close-panel">
+      <div class="cp-head"><span class="cp-led"></span><span id="cp-net">SENTINEL NETWORK</span></div>
+      <div class="cp-rows">
+        <div class="cp-row"><span>NODE</span><span class="cp-val" id="cp-node">GSD-04</span></div>
+        <div class="cp-row"><span>ZUGANG</span><span class="cp-val">ORCHID</span></div>
+        <div class="cp-div"></div>
+        <div class="cp-row"><span>SESSION</span><span class="cp-red">AKTIV</span></div>
+      </div>
+      <button id="close-btn">[ DISCONNECT ]</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const frame  = document.getElementById('frame');
+  const panel  = document.getElementById('close-panel');
+  const cpNet  = document.getElementById('cp-net');
+  const cpNode = document.getElementById('cp-node');
+
+  // Active tablet state, set by the Lua "open" message.
+  let active = { folder: 'sentinel', entry: 'index.html', frame: true };
+  let firstLoad = false;
+
+  function storageKey() { return 'birp_tablet_last:' + active.folder; }
+
+  function getSaved() {
+    try { return localStorage.getItem(storageKey()) || active.entry; }
+    catch (e) { return active.entry; }
+  }
+
+  function saveCurrent() {
+    try {
+      const file = frame.contentWindow.location.pathname.split('/').pop();
+      if (file && file !== '') localStorage.setItem(storageKey(), file);
+    } catch (e) {}
+  }
+
+  // Tell the embedded page (e.g. Smile) it is "open" so its own NUI glue
+  // reveals itself. Harmless for pages that don't listen for it.
+  function wakeIframe() {
+    try {
+      const w = frame.contentWindow;
+      w.postMessage({ action: 'open' }, '*');
+      w.postMessage({ type: 'open' }, '*');
+    } catch (e) {}
+  }
+
+  frame.addEventListener('load', function () {
+    // Skip the about:blank reset we trigger on close.
+    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
+
+    if (firstLoad) {
+      firstLoad = false;
+      const saved = getSaved();
+      const current = (function () {
+        try { return frame.contentWindow.location.pathname.split('/').pop(); } catch (e) { return ''; }
+      })();
+      if (saved && saved !== current) {
+        frame.contentWindow.location.replace(active.folder + '/' + saved);
+        return; // the replace triggers another load
+      }
+    }
+
+    wakeIframe();
+    frame.classList.add('ready');
+    panel.classList.add('ready');
+    saveCurrent();
+  });
+
+  function openUI(data) {
+    active = {
+      folder: data.folder || 'sentinel',
+      entry:  data.entry  || 'index.html',
+      frame:  data.frame !== false
+    };
+    if (data.network) cpNet.textContent = data.network;
+    if (data.node)    cpNode.textContent = data.node;
+
+    document.body.classList.toggle('no-frame', active.frame === false);
+    document.body.classList.add('nui-open');
+    frame.classList.remove('ready');
+    panel.classList.remove('ready');
+    firstLoad = true;
+    frame.src = active.folder + '/' + active.entry;
+  }
+
+  function closeUI() {
+    try { frame.contentWindow.document.activeElement.blur(); } catch (e) {}
+    try { frame.contentWindow.blur(); } catch (e) {}
+    try { document.activeElement.blur(); } catch (e) {}
+
+    saveCurrent();
+
+    // Fire the Lua callback FIRST, before DOM changes can abort the request.
+    fetch('https://' + GetParentResourceName() + '/close', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: '{}'
+    }).then(function () {
+      document.body.classList.remove('nui-open');
+      frame.classList.remove('ready');
+      panel.classList.remove('ready');
+      frame.src = 'about:blank';
+    });
+  }
+
+  document.getElementById('close-btn').addEventListener('click', closeUI);
+
+  // ESC closes the tablet from the shell level.
+  window.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' || e.keyCode === 27) closeUI();
+  });
+
+  // Lua -> NUI
+  window.addEventListener('message', function (e) {
+    const d = e.data;
+    if (!d) return;
+    if (d.type === 'open')  { openUI(d); return; }
+    if (d.type === 'close') { closeUI(); return; }
+  });
+</script>
+
+</body>
+</html>

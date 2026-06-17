@@ -1,0 +1,9 @@
+[submodule "sentinel"]
+	path = sentinel
+	url = https://github.com/OrchidSentinel/sentinel-initiative.git
+[submodule "smile"]
+	path = smile
+	url = https://github.com/OrchidSentinel/Smile.git
+[submodule "blackbox"]
+	path = blackbox
+	url = https://github.com/OrchidSentinel/sentinel-blackbox.git
