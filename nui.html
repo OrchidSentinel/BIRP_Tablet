@@ -286,6 +286,7 @@
   // Active tablet state, set by the Lua "open" message.
   let active = { folder: 'sentinel', entry: 'index.html', frame: true };
   let firstLoad = false;
+  let closing = false;
 
   function storageKey() { return 'birp_tablet_last:' + active.folder; }
 
@@ -311,6 +312,17 @@
     } catch (e) {}
   }
 
+  // Same-origin iframe: ESC-Handler ans eingebettete Dokument haengen, damit
+  // das Tablet auch schliesst, wenn der Fokus IM Content liegt (Parent-keydown
+  // feuert nicht fuer Events innerhalb des iframes).
+  function attachEscToFrame() {
+    try {
+      frame.contentDocument.addEventListener('keydown', function (e) {
+        if (e.key === 'Escape' || e.keyCode === 27) closeUI();
+      });
+    } catch (e) {}
+  }
+
   frame.addEventListener('load', function () {
     // Skip the about:blank reset we trigger on close.
     try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
@@ -328,12 +340,14 @@
     }
 
     wakeIframe();
+    attachEscToFrame();
     frame.classList.add('ready');
     panel.classList.add('ready');
     saveCurrent();
   });
 
   function openUI(data) {
+    closing = false;
     active = {
       folder: data.folder || 'sentinel',
       entry:  data.entry  || 'index.html',
@@ -351,6 +365,8 @@
   }
 
   function closeUI() {
+    if (closing) return; // bereits im Schliessen -> kein zweiter /close-Roundtrip
+    closing = true;
     try { frame.contentWindow.document.activeElement.blur(); } catch (e) {}
     try { frame.contentWindow.blur(); } catch (e) {}
     try { document.activeElement.blur(); } catch (e) {}
@@ -367,6 +383,11 @@
       frame.classList.remove('ready');
       panel.classList.remove('ready');
       frame.src = 'about:blank';
+      closing = false;
+    }).catch(function () {
+      // Selbst wenn der Close-Callback scheitert: UI freigeben + Flag zuruecksetzen.
+      document.body.classList.remove('nui-open');
+      closing = false;
     });
   }
 
