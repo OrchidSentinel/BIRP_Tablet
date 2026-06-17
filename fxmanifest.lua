@@ -9,13 +9,18 @@ lua54 'yes'
 
 ui_page 'nui.html'
 
--- Tablet-Hülle + alle drei Inhalts-Ordner (Submodules) per Glob servieren.
--- Dadurch müssen bei neuen Inhaltsdateien KEINE Manifest-Änderungen erfolgen.
+-- Tablet-Hülle + alle drei Inhalts-Ordner (Submodules) servieren.
+-- Pro Ordner BEIDE Patterns:
+--   '<ordner>/*'     -> flache Dateien (aktueller Stand der Content-Repos)
+--   '<ordner>/**/*'  -> evtl. spätere Unterordner
+-- So müssen bei neuen Inhaltsdateien KEINE Manifest-Änderungen erfolgen.
 files {
     'nui.html',
-    'config.lua',
+    'sentinel/*',
     'sentinel/**/*',
+    'smile/*',
     'smile/**/*',
+    'blackbox/*',
     'blackbox/**/*',
 }
 
@@ -25,6 +30,3 @@ server_script 'server/server.lua'
 
 -- Optionale Halteanimation; wird nur genutzt wenn vorhanden (siehe client.lua).
 -- dependency 'bablo-animations'
-
-provide 'birp_sentinel_tablet'
-provide 'birp_smile_tablet'
