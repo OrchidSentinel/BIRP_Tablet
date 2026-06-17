@@ -34,6 +34,7 @@ Config.Tablets = {
         frame   = true,
         network = 'SENTINEL NETWORK',
         node    = 'GSD-04',
+        access  = 'ORCHID',
     },
     smile = {
         item    = 'smile_terminal',
@@ -42,6 +43,7 @@ Config.Tablets = {
         frame   = true,
         network = 'SMILE ARCHIVE',
         node    = 'COR-13',
+        access  = 'SMILE',  -- PLATZHALTER, bitte bestaetigen
     },
     blackbox = {
         item    = 'blackbox_tablet',
@@ -50,5 +52,6 @@ Config.Tablets = {
         frame   = true,
         network = 'NEXUS BLACKBOX',
         node    = 'BLK-00',
+        access  = 'NEXUS',
     },
 }

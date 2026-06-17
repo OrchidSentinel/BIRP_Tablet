@@ -27,6 +27,7 @@ local function openTablet(id)
         frame   = t.frame ~= false,
         network = t.network,
         node    = t.node,
+        access  = t.access,
     })
 
     if Config.HoldAnimation and GetResourceState('bablo-animations') == 'started' then

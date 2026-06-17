@@ -268,7 +268,7 @@
       <div class="cp-head"><span class="cp-led"></span><span id="cp-net">SENTINEL NETWORK</span></div>
       <div class="cp-rows">
         <div class="cp-row"><span>NODE</span><span class="cp-val" id="cp-node">GSD-04</span></div>
-        <div class="cp-row"><span>ZUGANG</span><span class="cp-val">ORCHID</span></div>
+        <div class="cp-row"><span>ZUGANG</span><span class="cp-val" id="cp-access">ORCHID</span></div>
         <div class="cp-div"></div>
         <div class="cp-row"><span>SESSION</span><span class="cp-red">AKTIV</span></div>
       </div>
@@ -278,32 +278,21 @@
 </div>
 
 <script>
-  const frame  = document.getElementById('frame');
-  const panel  = document.getElementById('close-panel');
-  const cpNet  = document.getElementById('cp-net');
-  const cpNode = document.getElementById('cp-node');
+  const frame    = document.getElementById('frame');
+  const panel    = document.getElementById('close-panel');
+  const cpNet    = document.getElementById('cp-net');
+  const cpNode   = document.getElementById('cp-node');
+  const cpAccess = document.getElementById('cp-access');
 
-  // Active tablet state, set by the Lua "open" message.
+  // Aktives Tablet, gesetzt durch die Lua "open"-Nachricht.
   let active = { folder: 'sentinel', entry: 'index.html', frame: true };
-  let firstLoad = false;
+  // Welches Tablet ist aktuell im iframe geladen? Bleibt ueber Schliessen hinweg
+  // erhalten, damit Wiederoeffnen sofort anzeigt (kein Reload -> kein Schwarz).
+  let loadedFolder = null;
   let closing = false;
 
-  function storageKey() { return 'birp_tablet_last:' + active.folder; }
-
-  function getSaved() {
-    try { return localStorage.getItem(storageKey()) || active.entry; }
-    catch (e) { return active.entry; }
-  }
-
-  function saveCurrent() {
-    try {
-      const file = frame.contentWindow.location.pathname.split('/').pop();
-      if (file && file !== '') localStorage.setItem(storageKey(), file);
-    } catch (e) {}
-  }
-
-  // Tell the embedded page (e.g. Smile) it is "open" so its own NUI glue
-  // reveals itself. Harmless for pages that don't listen for it.
+  // Eingebettete Seite (z.B. Smile) "wecken", falls sie eigene NUI-Glue hat.
+  // Harmlos fuer reinen Content.
   function wakeIframe() {
     try {
       const w = frame.contentWindow;
@@ -313,8 +302,7 @@
   }
 
   // Same-origin iframe: ESC-Handler ans eingebettete Dokument haengen, damit
-  // das Tablet auch schliesst, wenn der Fokus IM Content liegt (Parent-keydown
-  // feuert nicht fuer Events innerhalb des iframes).
+  // das Tablet auch schliesst, wenn der Fokus IM Content liegt.
   function attachEscToFrame() {
     try {
       frame.contentDocument.addEventListener('keydown', function (e) {
@@ -323,27 +311,18 @@
     } catch (e) {}
   }
 
-  frame.addEventListener('load', function () {
-    // Skip the about:blank reset we trigger on close.
-    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
-
-    if (firstLoad) {
-      firstLoad = false;
-      const saved = getSaved();
-      const current = (function () {
-        try { return frame.contentWindow.location.pathname.split('/').pop(); } catch (e) { return ''; }
-      })();
-      if (saved && saved !== current) {
-        frame.contentWindow.location.replace(active.folder + '/' + saved);
-        return; // the replace triggers another load
-      }
-    }
-
+  // Inhalt sichtbar machen (Tablet ist offen + Seite geladen).
+  function reveal() {
+    document.body.classList.add('nui-open');
     wakeIframe();
-    attachEscToFrame();
     frame.classList.add('ready');
     panel.classList.add('ready');
-    saveCurrent();
+  }
+
+  frame.addEventListener('load', function () {
+    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
+    attachEscToFrame();
+    reveal();
   });
 
   function openUI(data) {
@@ -353,39 +332,41 @@
       entry:  data.entry  || 'index.html',
       frame:  data.frame !== false
     };
-    if (data.network) cpNet.textContent = data.network;
-    if (data.node)    cpNode.textContent = data.node;
+    if (data.network) cpNet.textContent    = data.network;
+    if (data.node)    cpNode.textContent   = data.node;
+    if (data.access)  cpAccess.textContent = data.access;
 
     document.body.classList.toggle('no-frame', active.frame === false);
-    document.body.classList.add('nui-open');
-    frame.classList.remove('ready');
-    panel.classList.remove('ready');
-    firstLoad = true;
-    frame.src = active.folder + '/' + active.entry;
+
+    if (loadedFolder === active.folder) {
+      // Gleiches Tablet ist schon geladen -> nur wieder anzeigen.
+      reveal();
+    } else {
+      // Anderes/erstes Tablet -> Inhalt laden; Anzeige folgt im load-Handler.
+      loadedFolder = active.folder;
+      frame.classList.remove('ready');
+      panel.classList.remove('ready');
+      document.body.classList.add('nui-open');
+      frame.src = active.folder + '/' + active.entry;
+    }
   }
 
   function closeUI() {
-    if (closing) return; // bereits im Schliessen -> kein zweiter /close-Roundtrip
+    if (closing) return;
     closing = true;
     try { frame.contentWindow.document.activeElement.blur(); } catch (e) {}
     try { frame.contentWindow.blur(); } catch (e) {}
     try { document.activeElement.blur(); } catch (e) {}
 
-    saveCurrent();
-
-    // Fire the Lua callback FIRST, before DOM changes can abort the request.
+    // Lua-Callback feuern. Inhalt bleibt geladen -> nur ausblenden (kein about:blank).
     fetch('https://' + GetParentResourceName() + '/close', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}'
     }).then(function () {
       document.body.classList.remove('nui-open');
-      frame.classList.remove('ready');
-      panel.classList.remove('ready');
-      frame.src = 'about:blank';
       closing = false;
     }).catch(function () {
-      // Selbst wenn der Close-Callback scheitert: UI freigeben + Flag zuruecksetzen.
       document.body.classList.remove('nui-open');
       closing = false;
     });
@@ -393,7 +374,7 @@
 
   document.getElementById('close-btn').addEventListener('click', closeUI);
 
-  // ESC closes the tablet from the shell level.
+  // ESC auf Wrapper-Ebene (Fokus ausserhalb des iframes).
   window.addEventListener('keydown', function (e) {
     if (e.key === 'Escape' || e.keyCode === 27) closeUI();
   });
@@ -405,6 +386,7 @@
     if (d.type === 'open')  { openUI(d); return; }
     if (d.type === 'close') { closeUI(); return; }
   });
+
 </script>
 
 </body>
