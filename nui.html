@@ -19,7 +19,7 @@
     #tablet-wrap { display: none }
     #close-panel { display: none }
     body.nui-open #tablet-wrap { display: flex }
-    body.nui-open #close-panel { display: block }
+    body.nui-open.show-panel #close-panel { display: block }
 
     /* Tablet shell */
     #tablet-wrap {
@@ -161,7 +161,7 @@
       transition: opacity .2s;
     }
 
-    body.nui-open #close-panel.ready { opacity: 1 }
+    body.nui-open.show-panel #close-panel.ready { opacity: 1 }
 
     .cp-head {
       display: flex;
@@ -337,6 +337,7 @@
     if (data.access)  cpAccess.textContent = data.access;
 
     document.body.classList.toggle('no-frame', active.frame === false);
+    document.body.classList.toggle('show-panel', data.panel === true);
 
     if (loadedFolder === active.folder) {
       // Gleiches Tablet ist schon geladen -> nur wieder anzeigen.

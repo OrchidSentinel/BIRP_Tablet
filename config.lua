@@ -26,6 +26,8 @@ Config.HoldAnimation = 'tablet2'
 --   frame   : true = Sentinel-Tablet-Rahmen, false = Vollbild
 --   network : Beschriftung im DISCONNECT-Panel (optional)
 --   node    : Node-Code im DISCONNECT-Panel (optional)
+--   access  : ZUGANG-Zeile im DISCONNECT-Panel (nur relevant wenn panel=true)
+--   panel   : true = DISCONNECT-Panel zeigen (nur Sentinel-Initiative!); sonst false
 Config.Tablets = {
     sentinel = {
         item    = 'sentinel_tablet',
@@ -35,6 +37,7 @@ Config.Tablets = {
         network = 'SENTINEL NETWORK',
         node    = 'GSD-04',
         access  = 'ORCHID',
+        panel   = true,
     },
     smile = {
         item    = 'smile_terminal',
@@ -43,7 +46,8 @@ Config.Tablets = {
         frame   = true,
         network = 'SMILE ARCHIVE',
         node    = 'COR-13',
-        access  = 'SMILE',  -- PLATZHALTER, bitte bestaetigen
+        access  = 'SMILE',
+        panel   = false,
     },
     blackbox = {
         item    = 'blackbox_tablet',
@@ -53,5 +57,6 @@ Config.Tablets = {
         network = 'NEXUS BLACKBOX',
         node    = 'BLK-00',
         access  = 'NEXUS',
+        panel   = false,
     },
 }
