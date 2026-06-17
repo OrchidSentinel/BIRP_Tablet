@@ -1,4 +1,4 @@
-# BIRP_Tablets
+# BIRP_Tablet
 
 Eine **einzige FiveM-Resource**, die **mehrere Tablet-Terminals** bündelt. Je
 nachdem, welches ox_inventory-Item benutzt wird, öffnet sich das passende
@@ -26,7 +26,7 @@ laufen unverändert auch als **GitHub-Pages-Website**. Hier sind sie als
 ## Architektur
 
 ```
-  ox_inventory-Item                BIRP_Tablets  (FiveM-Resource)
+  ox_inventory-Item                BIRP_Tablet  (FiveM-Resource)
   ───────────────►  client/client.lua ──SendNUIMessage(open)──►  nui.html
                          │  exports.openTablet(id)                 (Hülle/Rahmen)
                          │                                            │
@@ -64,22 +64,16 @@ Die Hülle schickt dem geladenen iframe nach dem Load zusätzlich
 
 ## Erstinstallation (Server)
 
-> **⚠️ Resource-Ordner = `BIRP_Tablets` (Plural).** Die Item-Exports sind mit
-> `BIRP_Tablets.` prefixed — das IST der Resource-Name. Das GitHub-Repo heisst
-> `BIRP_Tablet` (Singular), daher beim Klonen den Zielordner explizit angeben
-> (`… BIRP_Tablets`), sonst greifen die ox_inventory-Exports nicht.
-
-
 ```bash
 # MIT Submodules klonen:
-git clone --recurse-submodules https://github.com/OrchidSentinel/BIRP_Tablet.git BIRP_Tablets
+git clone --recurse-submodules https://github.com/OrchidSentinel/BIRP_Tablet.git
 
 # Falls schon ohne --recurse-submodules geklont:
-git -C BIRP_Tablets submodule update --init --recursive
+git -C BIRP_Tablet submodule update --init --recursive
 ```
 
 1. Items aus `items/items.lua` in `ox_inventory/data/items/…` eintragen.
-2. `ensure BIRP_Tablets` in die `server.cfg`.
+2. `ensure BIRP_Tablet` in die `server.cfg`.
 3. Alte Einzel-Resourcen (`BIRP_Sentinel_Tablet`, `BIRP_Smile_Tablet`) **aus der
    server.cfg nehmen** — sonst Item-/Export-Kollisionen.
 
@@ -88,16 +82,16 @@ git -C BIRP_Tablets submodule update --init --recursive
 Ein Tablet-Maintainer ändert **sein** Content-Repo auf GitHub. Auf dem Server:
 
 ```bash
-git -C BIRP_Tablets submodule update --remote --recursive   # alle Tablets
+git -C BIRP_Tablet submodule update --remote --recursive   # alle Tablets
 # oder gezielt eins:
-git -C BIRP_Tablets/sentinel pull
+git -C BIRP_Tablet/sentinel pull
 ```
 
 Dann in der Server-Konsole:
 
 ```
 refresh
-restart BIRP_Tablets
+restart BIRP_Tablet
 ```
 
 **Nur Dateien aktualisieren — kein Code-Eingriff.** Jedes Tablet bleibt sein

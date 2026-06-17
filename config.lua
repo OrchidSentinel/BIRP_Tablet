@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════════════════════
---  BIRP_Tablets – Konfiguration
+--  BIRP_Tablet – Konfiguration
 --
 --  Eine Resource bündelt mehrere "Tablets". Jeder Inhalt liegt in einem eigenen
 --  Unterordner, der als Git-Submodule auf ein eigenes GitHub-Repo zeigt und
@@ -10,8 +10,8 @@
 --    blackbox/  -> github.com/OrchidSentinel/sentinel-blackbox
 --
 --  Inhalt aktualisieren (auf dem Server):
---    git -C resources/[...]/BIRP_Tablets submodule update --remote
---    danach: refresh; ensure BIRP_Tablets
+--    git -C resources/[...]/BIRP_Tablet submodule update --remote
+--    danach: refresh; ensure BIRP_Tablet
 --  -> Es müssen NUR die Dateien aktualisiert werden, keine Code-Änderung nötig.
 -- ══════════════════════════════════════════════════════════════════════════════
 

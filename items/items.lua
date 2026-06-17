@@ -1,14 +1,9 @@
 -- ══════════════════════════════════════════════════════════════════════════════
---  BIRP_Tablets – ox_inventory Item-Definitionen (REFERENZ)
+--  BIRP_Tablet – ox_inventory Item-Definitionen (REFERENZ)
 --
 --  Diese Datei wird NICHT von FiveM geladen. Sie ist die dauerhafte Referenz-
 --  Kopie der Items. Eintragen in: ox_inventory/data/items/testing.lua
 --  (bzw. eure Item-Datei). Jedes Item ruft den passenden Client-Export auf.
---
---  WICHTIG: Der Export-Prefix unten ('BIRP_Tablets.…') IST der Resource-Name.
---  Der Resource-Ordner auf dem Server MUSS daher 'BIRP_Tablets' heissen.
---  (Das GitHub-Repo heisst 'BIRP_Tablet' – beim Klonen Zielordner mit angeben:
---   git clone --recurse-submodules <url> BIRP_Tablets)
 -- ══════════════════════════════════════════════════════════════════════════════
 
 ['sentinel_tablet'] = {
@@ -19,7 +14,7 @@
     consume     = 0,
     description = 'Ein gesichertes Tablet der Sentinel Initiative.',
     client = {
-        export = 'BIRP_Tablets.openSentinelTablet',
+        export = 'BIRP_Tablet.openSentinelTablet',
     },
 },
 
@@ -31,7 +26,7 @@
     consume     = 0,
     description = 'Ein korrumpiertes Archiv-Terminal. Was auch immer es enthält, es will gefunden werden.',
     client = {
-        export = 'BIRP_Tablets.openSmileTablet',
+        export = 'BIRP_Tablet.openSmileTablet',
     },
 },
 
@@ -43,6 +38,6 @@
     consume     = 0,
     description = 'Ein verschlossenes NEXUS-Blackbox-Terminal.',
     client = {
-        export = 'BIRP_Tablets.openBlackboxTablet',
+        export = 'BIRP_Tablet.openBlackboxTablet',
     },
 },

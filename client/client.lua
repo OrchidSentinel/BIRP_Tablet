@@ -1,5 +1,5 @@
 -- ══════════════════════════════════════════════════════════════════════════════
---  BIRP_Tablets – Client
+--  BIRP_Tablet – Client
 --
 --  Öffnet je nach benutztem Item das passende Tablet. Alle Tablets teilen sich
 --  EINE NUI-Page (nui.html) und EINEN Tablet-Rahmen; der Inhalt wird aus dem
@@ -12,7 +12,7 @@ local current  = nil  -- aktuell geöffnetes Tablet (Config.Tablets key)
 local function openTablet(id)
     local t = Config.Tablets[id]
     if not t then
-        print(('^1[BIRP_Tablets]^7 Unbekanntes Tablet: %s'):format(tostring(id)))
+        print(('^1[BIRP_Tablet]^7 Unbekanntes Tablet: %s'):format(tostring(id)))
         return
     end
     if isOpen then return end
@@ -48,7 +48,7 @@ local function closeTablet()
 end
 
 -- ── Exports ───────────────────────────────────────────────────────────────────
--- Generisch:   exports['BIRP_Tablets']:openTablet('sentinel')
+-- Generisch:   exports['BIRP_Tablet']:openTablet('sentinel')
 exports('openTablet', openTablet)
 exports('closeTablet', closeTablet)
 
