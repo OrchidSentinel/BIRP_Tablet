@@ -28,6 +28,9 @@ Config.HoldAnimation = 'tablet2'
 Config.Audio = {
     resource      = 'xsound',       -- Name der xSound-Resource
     defaultVolume = 0.4,            -- Start-Lautstärke (0.0 - 1.0), falls die Seite keine sendet
+    -- Räumlich (3D): der Ton wird an der Position des abspielenden Spielers
+    -- ausgegeben; Umstehende im Radius hören ihn mit, weit entfernte nicht.
+    distance      = 12.0,           -- Hörradius in Metern
 }
 
 -- Jede ID = ein Tablet. 'item' ist das ox_inventory-Item, das es öffnet.
