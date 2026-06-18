@@ -288,6 +288,7 @@
   let active    = { folder: 'sentinel', entry: 'index.html', frame: true, selfNav: false };
   let firstLoad = false;
   let closing   = false;
+  let revealed  = false;
 
   // Zuletzt besuchte Seite pro Tablet im Client merken (Fortschritt pro Spieler).
   function pageKey()  { return 'birp_tablet_page_' + active.folder; }
@@ -317,9 +318,16 @@
   // zurueck; auf der Startseite (entry) -> Tablet schliessen.
   function goBack() {
     try {
+      const href = frame.contentWindow.location.href;
       const file = frame.contentWindow.location.pathname.split('/').pop();
-      if (!file || file === '' || file === active.entry) { closeUI(); }
-      else { frame.contentWindow.history.back(); }
+      // Kein echter Inhalt geladen (about:blank/leer) ODER auf der Startseite
+      // -> schliessen. Nur bei echtem Unterinhalt eine Seite zurueck.
+      if (!href || href === 'about:blank' || !file || file === '' ||
+          file === 'blank' || file === active.entry) {
+        closeUI();
+      } else {
+        frame.contentWindow.history.back();
+      }
     } catch (e) { closeUI(); }
   }
 
@@ -337,6 +345,8 @@
 
   // Inhalt sichtbar machen (Tablet offen + Seite geladen).
   function reveal() {
+    if (revealed) return;
+    revealed = true;
     document.body.classList.add('nui-open');
     wakeIframe();
     frame.classList.add('ready');
@@ -344,15 +354,19 @@
   }
 
   frame.addEventListener('load', function () {
-    // Beim ersten Laden ggf. zur zuletzt gemerkten Seite springen.
+    // about:blank (Reset beim Schliessen) NIE als Inhalt behandeln -> zuerst raus.
+    // Verhindert, dass die firstLoad-Sprunglogik auf einem about:blank-Load feuert
+    // und mit der gerade laufenden Navigation kollidiert (schwarzer Screen).
+    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
+
+    // Beim ersten echten Laden ggf. zur zuletzt gemerkten Seite springen.
     if (firstLoad) {
       firstLoad = false;
       const saved = getSaved();
       if (saved && saved !== active.entry) {
-        try { frame.contentWindow.location.href = saved; return; } catch (e) {}
+        try { frame.contentWindow.location.replace(saved); return; } catch (e) {}
       }
     }
-    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
     attachEscToFrame();
     reveal();
     saveCurrent();
@@ -377,7 +391,12 @@
     panel.classList.remove('ready');
     document.body.classList.add('nui-open');
     firstLoad = true;
+    revealed  = false;
     frame.src = active.folder + '/' + active.entry;
+
+    // Failsafe: Sollte ein load-Event ausbleiben/fehlschlagen, das Tablet trotzdem
+    // sichtbar machen, damit es NIE dauerhaft schwarz bleibt.
+    setTimeout(function () { if (!revealed && document.body.classList.contains('nui-open')) reveal(); }, 2500);
   }
 
   function finishClose() {
@@ -385,7 +404,8 @@
     frame.classList.remove('ready');
     panel.classList.remove('ready');
     frame.src = 'about:blank';
-    closing = false;
+    closing  = false;
+    revealed = false;
   }
 
   function closeUI() {
