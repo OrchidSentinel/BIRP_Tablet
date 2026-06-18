@@ -286,9 +286,9 @@
 
   // Aktives Tablet, gesetzt durch die Lua "open"-Nachricht.
   let active = { folder: 'sentinel', entry: 'index.html', frame: true };
-  // Welches Tablet ist aktuell im iframe geladen? Bleibt ueber Schliessen hinweg
-  // erhalten, damit Wiederoeffnen sofort anzeigt (kein Reload -> kein Schwarz).
-  let loadedFolder = null;
+  // Zaehler fuer Cache-Busting: erzwingt bei jedem Oeffnen einen frischen Load
+  // der Startseite (Raetsel-Reset) + ein zuverlaessiges load-Event (kein Schwarz).
+  let opens = 0;
   let closing = false;
 
   // Eingebettete Seite (z.B. Smile) "wecken", falls sie eigene NUI-Glue hat.
@@ -339,17 +339,14 @@
     document.body.classList.toggle('no-frame', active.frame === false);
     document.body.classList.toggle('show-panel', data.panel === true);
 
-    if (loadedFolder === active.folder) {
-      // Gleiches Tablet ist schon geladen -> nur wieder anzeigen.
-      reveal();
-    } else {
-      // Anderes/erstes Tablet -> Inhalt laden; Anzeige folgt im load-Handler.
-      loadedFolder = active.folder;
-      frame.classList.remove('ready');
-      panel.classList.remove('ready');
-      document.body.classList.add('nui-open');
-      frame.src = active.folder + '/' + active.entry;
-    }
+    // Tablet bootet bei JEDEM Oeffnen frisch zur Startseite: es bleibt kein State
+    // erhalten (sonst waere z.B. das Sentinel-Raetsel umgehbar). Der ?_=N-Zaehler
+    // erzwingt einen echten Reload, auch wenn dieselbe URL erneut gesetzt wird,
+    // damit das load-Event feuert und reveal() das Schwarz vermeidet.
+    frame.classList.remove('ready');
+    panel.classList.remove('ready');
+    document.body.classList.add('nui-open');
+    frame.src = active.folder + '/' + active.entry + '?_=' + (++opens);
   }
 
   function closeUI() {
