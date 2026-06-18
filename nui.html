@@ -288,6 +288,8 @@
   let active    = { folder: 'sentinel', entry: 'index.html', frame: true, selfNav: false };
   let closing   = false;
   let revealed  = false;
+  let navStack  = [];     // eigene History: besuchte Seiten seit dem Oeffnen
+  let goingBack = false;  // true waehrend einer Rueckwaerts-Navigation
 
   // Zuletzt besuchte Seite pro Tablet im Client merken (Fortschritt pro Spieler).
   function pageKey()  { return 'birp_tablet_page_' + active.folder; }
@@ -313,11 +315,19 @@
     } catch (e) {}
   }
 
-  // ESC / Zurueck-Geste schliesst das Tablet zuverlaessig. (Seiten-Navigation
-  // laeuft ueber die "RETURN"-Links der Inhaltsseiten; ein direkt geladenes
-  // iframe hat keine History fuer history.back(), daher hier eindeutig schliessen.)
+  // ESC / Zurueck: eine Seite zurueck (eigene History, robust ggue. fehlender
+  // iframe-History bei Direktladen). Auf der ersten Seite -> Tablet schliessen.
+  // So kann man sich nie aussperren.
   function goBack() {
-    closeUI();
+    if (navStack.length > 1) {
+      navStack.pop();
+      const prev = navStack[navStack.length - 1];
+      goingBack = true;
+      try { frame.contentWindow.location.href = prev; }
+      catch (e) { goingBack = false; closeUI(); }
+    } else {
+      closeUI();
+    }
   }
 
   // Nur fuer Tablets OHNE eigene ESC-Logik (Smile/Blackbox): ESC im
@@ -358,7 +368,19 @@
 
   frame.addEventListener('load', function () {
     // about:blank (Reset beim Schliessen) NIE als Inhalt behandeln.
-    try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
+    let here;
+    try {
+      if (frame.contentWindow.location.href === 'about:blank') return;
+      here = frame.contentWindow.location.pathname.split('/').pop() || active.entry;
+    } catch (e) { return; }
+
+    // Eigene History pflegen: Vorwaerts-Navigation pushen, Rueckwaerts ueberspringen.
+    if (goingBack) {
+      goingBack = false;
+    } else if (navStack[navStack.length - 1] !== here) {
+      navStack.push(here);
+    }
+
     hideScrollbar();
     attachEscToFrame();
     reveal();
@@ -384,17 +406,24 @@
     panel.classList.remove('ready');
     document.body.classList.add('nui-open');
     revealed = false;
+    goingBack = false;
 
     // Direkt die zuletzt gemerkte Seite laden (Fortschritt pro Spieler) – ein
     // einziger Load, kein zweistufiger Redirect (der ingame zu schwarzem
     // Screen fuehren konnte).
-    frame.src = active.folder + '/' + getSaved();
+    const startPage = getSaved();
+    // Startseite immer als Wurzel der History: von einer direkt geladenen
+    // Unterseite kommt man per ESC zurueck (zur Startseite) und dann raus.
+    navStack = (startPage && startPage !== active.entry) ? [active.entry] : [];
+    frame.src = active.folder + '/' + startPage;
 
     // Failsafe gegen schwarzen Screen: Hat die gemerkte Seite nach 2.5s nicht
     // sauber geladen (kein reveal), wird sie verworfen und die Startseite geladen.
     setTimeout(function () {
       if (revealed || !document.body.classList.contains('nui-open')) return;
       try { localStorage.removeItem(pageKey()); } catch (e) {}
+      navStack = [];
+      goingBack = false;
       frame.src = active.folder + '/' + active.entry;
       // Allerletzter Failsafe: notfalls trotzdem sichtbar machen.
       setTimeout(function () { reveal(); }, 2500);
