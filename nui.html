@@ -286,7 +286,6 @@
 
   // Aktives Tablet, gesetzt durch die Lua "open"-Nachricht.
   let active    = { folder: 'sentinel', entry: 'index.html', frame: true, selfNav: false };
-  let firstLoad = false;
   let closing   = false;
   let revealed  = false;
 
@@ -354,19 +353,8 @@
   }
 
   frame.addEventListener('load', function () {
-    // about:blank (Reset beim Schliessen) NIE als Inhalt behandeln -> zuerst raus.
-    // Verhindert, dass die firstLoad-Sprunglogik auf einem about:blank-Load feuert
-    // und mit der gerade laufenden Navigation kollidiert (schwarzer Screen).
+    // about:blank (Reset beim Schliessen) NIE als Inhalt behandeln.
     try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
-
-    // Beim ersten echten Laden ggf. zur zuletzt gemerkten Seite springen.
-    if (firstLoad) {
-      firstLoad = false;
-      const saved = getSaved();
-      if (saved && saved !== active.entry) {
-        try { frame.contentWindow.location.replace(saved); return; } catch (e) {}
-      }
-    }
     attachEscToFrame();
     reveal();
     saveCurrent();
@@ -390,13 +378,22 @@
     frame.classList.remove('ready');
     panel.classList.remove('ready');
     document.body.classList.add('nui-open');
-    firstLoad = true;
-    revealed  = false;
-    frame.src = active.folder + '/' + active.entry;
+    revealed = false;
 
-    // Failsafe: Sollte ein load-Event ausbleiben/fehlschlagen, das Tablet trotzdem
-    // sichtbar machen, damit es NIE dauerhaft schwarz bleibt.
-    setTimeout(function () { if (!revealed && document.body.classList.contains('nui-open')) reveal(); }, 2500);
+    // Direkt die zuletzt gemerkte Seite laden (Fortschritt pro Spieler) – ein
+    // einziger Load, kein zweistufiger Redirect (der ingame zu schwarzem
+    // Screen fuehren konnte).
+    frame.src = active.folder + '/' + getSaved();
+
+    // Failsafe gegen schwarzen Screen: Hat die gemerkte Seite nach 2.5s nicht
+    // sauber geladen (kein reveal), wird sie verworfen und die Startseite geladen.
+    setTimeout(function () {
+      if (revealed || !document.body.classList.contains('nui-open')) return;
+      try { localStorage.removeItem(pageKey()); } catch (e) {}
+      frame.src = active.folder + '/' + active.entry;
+      // Allerletzter Failsafe: notfalls trotzdem sichtbar machen.
+      setTimeout(function () { reveal(); }, 2500);
+    }, 2500);
   }
 
   function finishClose() {
