@@ -20,6 +20,16 @@ Config = {}
 -- Optional: Halteanimation beim Öffnen (bablo-animations). false = aus.
 Config.HoldAnimation = 'tablet2'
 
+-- ── Audio (xSound) ───────────────────────────────────────────────────────
+--  Die Inhaltsseiten (z.B. sentinel/tape_01.html) nutzen im Browser ein
+--  natives <audio>-Element. INGAME wird der Ton stattdessen über xSound
+--  abgespielt (Lautstärke-Kontrolle, sauberes Stoppen beim Schließen).
+--  Die Seite schaltet ihr <audio> dann stumm und steuert nur noch xSound.
+Config.Audio = {
+    resource      = 'xsound',       -- Name der xSound-Resource
+    defaultVolume = 0.4,            -- Start-Lautstärke (0.0 - 1.0), falls die Seite keine sendet
+}
+
 -- Jede ID = ein Tablet. 'item' ist das ox_inventory-Item, das es öffnet.
 --   folder  : Unterordner/Submodule mit dem Inhalt
 --   entry   : Start-HTML im Ordner
