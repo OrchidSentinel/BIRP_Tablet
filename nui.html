@@ -323,8 +323,9 @@
       navStack.pop();
       const prev = navStack[navStack.length - 1];
       goingBack = true;
-      try { frame.contentWindow.location.href = prev; }
-      catch (e) { goingBack = false; closeUI(); }
+      // Direkt ueber frame.src laden (NICHT location.href manipulieren – das ist
+      // ingame im CEF unzuverlaessig und fuehrt zu leerem/schwarzem iframe).
+      frame.src = active.folder + '/' + prev;
     } else {
       closeUI();
     }
