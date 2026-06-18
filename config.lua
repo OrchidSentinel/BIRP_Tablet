@@ -28,6 +28,8 @@ Config.HoldAnimation = 'tablet2'
 --   node    : Node-Code im DISCONNECT-Panel (optional)
 --   access  : ZUGANG-Zeile im DISCONNECT-Panel (nur relevant wenn panel=true)
 --   panel   : true = DISCONNECT-Panel zeigen (nur Sentinel-Initiative!); sonst false
+--   selfNav : true = Inhalt bringt eigene ESC/Zurueck-Logik mit (postMessage
+--             'sentinel:back'); Huelle haengt dann KEIN eigenes ESC an. Default false.
 Config.Tablets = {
     sentinel = {
         item    = 'sentinel_tablet',
@@ -38,6 +40,7 @@ Config.Tablets = {
         node    = 'GSD-04',
         access  = 'ORCHID',
         panel   = true,
+        selfNav = true,
     },
     smile = {
         item    = 'smile_terminal',

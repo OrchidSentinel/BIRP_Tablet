@@ -285,14 +285,26 @@
   const cpAccess = document.getElementById('cp-access');
 
   // Aktives Tablet, gesetzt durch die Lua "open"-Nachricht.
-  let active = { folder: 'sentinel', entry: 'index.html', frame: true };
-  // Zaehler fuer Cache-Busting: erzwingt bei jedem Oeffnen einen frischen Load
-  // der Startseite (Raetsel-Reset) + ein zuverlaessiges load-Event (kein Schwarz).
-  let opens = 0;
-  let closing = false;
+  let active    = { folder: 'sentinel', entry: 'index.html', frame: true, selfNav: false };
+  let firstLoad = false;
+  let closing   = false;
+
+  // Zuletzt besuchte Seite pro Tablet im Client merken (Fortschritt pro Spieler).
+  function pageKey()  { return 'birp_tablet_page_' + active.folder; }
+  function getSaved() {
+    try { return localStorage.getItem(pageKey()) || active.entry; }
+    catch (e) { return active.entry; }
+  }
+  function saveCurrent() {
+    try {
+      const file = frame.contentWindow.location.pathname.split('/').pop();
+      if (file && file !== '' && file.indexOf('nui.html') === -1) {
+        localStorage.setItem(pageKey(), file);
+      }
+    } catch (e) {}
+  }
 
   // Eingebettete Seite (z.B. Smile) "wecken", falls sie eigene NUI-Glue hat.
-  // Harmlos fuer reinen Content.
   function wakeIframe() {
     try {
       const w = frame.contentWindow;
@@ -301,17 +313,29 @@
     } catch (e) {}
   }
 
-  // Same-origin iframe: ESC-Handler ans eingebettete Dokument haengen, damit
-  // das Tablet auch schliesst, wenn der Fokus IM Content liegt.
+  // Einheitliche Zurueck-Navigation: nicht auf der Startseite -> eine Seite
+  // zurueck; auf der Startseite (entry) -> Tablet schliessen.
+  function goBack() {
+    try {
+      const file = frame.contentWindow.location.pathname.split('/').pop();
+      if (!file || file === '' || file === active.entry) { closeUI(); }
+      else { frame.contentWindow.history.back(); }
+    } catch (e) { closeUI(); }
+  }
+
+  // Nur fuer Tablets OHNE eigene ESC-Logik (Smile/Blackbox): ESC im
+  // eingebetteten Dokument abfangen. Sentinel bringt eigene ESC->back-Logik mit
+  // (selfNav) und wird ausgelassen, sonst doppelte Navigation.
   function attachEscToFrame() {
+    if (active.selfNav) return;
     try {
       frame.contentDocument.addEventListener('keydown', function (e) {
-        if (e.key === 'Escape' || e.keyCode === 27) closeUI();
+        if (e.key === 'Escape' || e.keyCode === 27) goBack();
       });
     } catch (e) {}
   }
 
-  // Inhalt sichtbar machen (Tablet ist offen + Seite geladen).
+  // Inhalt sichtbar machen (Tablet offen + Seite geladen).
   function reveal() {
     document.body.classList.add('nui-open');
     wakeIframe();
@@ -320,17 +344,27 @@
   }
 
   frame.addEventListener('load', function () {
+    // Beim ersten Laden ggf. zur zuletzt gemerkten Seite springen.
+    if (firstLoad) {
+      firstLoad = false;
+      const saved = getSaved();
+      if (saved && saved !== active.entry) {
+        try { frame.contentWindow.location.href = saved; return; } catch (e) {}
+      }
+    }
     try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
     attachEscToFrame();
     reveal();
+    saveCurrent();
   });
 
   function openUI(data) {
     closing = false;
     active = {
-      folder: data.folder || 'sentinel',
-      entry:  data.entry  || 'index.html',
-      frame:  data.frame !== false
+      folder:  data.folder || 'sentinel',
+      entry:   data.entry  || 'index.html',
+      frame:   data.frame !== false,
+      selfNav: data.selfNav === true
     };
     if (data.network) cpNet.textContent    = data.network;
     if (data.node)    cpNode.textContent   = data.node;
@@ -339,50 +373,51 @@
     document.body.classList.toggle('no-frame', active.frame === false);
     document.body.classList.toggle('show-panel', data.panel === true);
 
-    // Tablet bootet bei JEDEM Oeffnen frisch zur Startseite: es bleibt kein State
-    // erhalten (sonst waere z.B. das Sentinel-Raetsel umgehbar). Der ?_=N-Zaehler
-    // erzwingt einen echten Reload, auch wenn dieselbe URL erneut gesetzt wird,
-    // damit das load-Event feuert und reveal() das Schwarz vermeidet.
     frame.classList.remove('ready');
     panel.classList.remove('ready');
     document.body.classList.add('nui-open');
-    frame.src = active.folder + '/' + active.entry + '?_=' + (++opens);
+    firstLoad = true;
+    frame.src = active.folder + '/' + active.entry;
+  }
+
+  function finishClose() {
+    document.body.classList.remove('nui-open');
+    frame.classList.remove('ready');
+    panel.classList.remove('ready');
+    frame.src = 'about:blank';
+    closing = false;
   }
 
   function closeUI() {
     if (closing) return;
     closing = true;
+    saveCurrent();
     try { frame.contentWindow.document.activeElement.blur(); } catch (e) {}
     try { frame.contentWindow.blur(); } catch (e) {}
     try { document.activeElement.blur(); } catch (e) {}
 
-    // Lua-Callback feuern. Inhalt bleibt geladen -> nur ausblenden (kein about:blank).
+    // Lua-Callback feuern, dann UI ausblenden + iframe entladen.
     fetch('https://' + GetParentResourceName() + '/close', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: '{}'
-    }).then(function () {
-      document.body.classList.remove('nui-open');
-      closing = false;
-    }).catch(function () {
-      document.body.classList.remove('nui-open');
-      closing = false;
-    });
+    }).then(finishClose).catch(finishClose);
   }
 
   document.getElementById('close-btn').addEventListener('click', closeUI);
 
   // ESC auf Wrapper-Ebene (Fokus ausserhalb des iframes).
   window.addEventListener('keydown', function (e) {
-    if (e.key === 'Escape' || e.keyCode === 27) closeUI();
+    if (e.key === 'Escape' || e.keyCode === 27) goBack();
   });
 
-  // Lua -> NUI
+  // Lua -> NUI  /  eingebettete Seite -> Huelle
   window.addEventListener('message', function (e) {
     const d = e.data;
     if (!d) return;
-    if (d.type === 'open')  { openUI(d); return; }
-    if (d.type === 'close') { closeUI(); return; }
+    if (d.type === 'open')          { openUI(d); return; }
+    if (d.type === 'close')         { closeUI(); return; }
+    if (d.type === 'sentinel:back') { goBack();  return; }
   });
 
 </script>
