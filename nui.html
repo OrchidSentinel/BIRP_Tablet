@@ -332,6 +332,20 @@
     } catch (e) {}
   }
 
+  // Scrollbar im eingebetteten Inhalt ausblenden (same-origin -> Style injizieren).
+  // Scrollen per Mausrad bleibt moeglich; nur die Leiste verschwindet.
+  function hideScrollbar() {
+    try {
+      const d = frame.contentDocument;
+      if (!d || d.getElementById('birp-no-scrollbar')) return;
+      const st = d.createElement('style');
+      st.id = 'birp-no-scrollbar';
+      st.textContent = '::-webkit-scrollbar{width:0!important;height:0!important;display:none!important}' +
+                       'html,body{scrollbar-width:none!important;-ms-overflow-style:none!important}';
+      (d.head || d.documentElement).appendChild(st);
+    } catch (e) {}
+  }
+
   // Inhalt sichtbar machen (Tablet offen + Seite geladen).
   function reveal() {
     if (revealed) return;
@@ -345,6 +359,7 @@
   frame.addEventListener('load', function () {
     // about:blank (Reset beim Schliessen) NIE als Inhalt behandeln.
     try { if (frame.contentWindow.location.href === 'about:blank') return; } catch (e) { return; }
+    hideScrollbar();
     attachEscToFrame();
     reveal();
     saveCurrent();
