@@ -313,21 +313,11 @@
     } catch (e) {}
   }
 
-  // Einheitliche Zurueck-Navigation: nicht auf der Startseite -> eine Seite
-  // zurueck; auf der Startseite (entry) -> Tablet schliessen.
+  // ESC / Zurueck-Geste schliesst das Tablet zuverlaessig. (Seiten-Navigation
+  // laeuft ueber die "RETURN"-Links der Inhaltsseiten; ein direkt geladenes
+  // iframe hat keine History fuer history.back(), daher hier eindeutig schliessen.)
   function goBack() {
-    try {
-      const href = frame.contentWindow.location.href;
-      const file = frame.contentWindow.location.pathname.split('/').pop();
-      // Kein echter Inhalt geladen (about:blank/leer) ODER auf der Startseite
-      // -> schliessen. Nur bei echtem Unterinhalt eine Seite zurueck.
-      if (!href || href === 'about:blank' || !file || file === '' ||
-          file === 'blank' || file === active.entry) {
-        closeUI();
-      } else {
-        frame.contentWindow.history.back();
-      }
-    } catch (e) { closeUI(); }
+    closeUI();
   }
 
   // Nur fuer Tablets OHNE eigene ESC-Logik (Smile/Blackbox): ESC im
